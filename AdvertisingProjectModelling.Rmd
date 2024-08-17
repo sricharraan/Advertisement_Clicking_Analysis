@@ -1,0 +1,170 @@
+---
+title: "Advertising Modelling"
+output: html_notebook
+---
+
+Importing necessary libraries:
+```{r}
+library(ggplot2)
+library(dplyr)
+library(MASS)
+library(broom)
+library(arm)
+library(cowplot)
+```
+
+--------------------------------
+
+Reading the data:
+```{r}
+ads <- read.csv('advertising.csv')
+head(ads)
+```
+
+------------------------------------------
+
+Fitting the Logistic Regression with Daily Time Spent on Site as primary variable:
+
+```{r}
+click.base.logit = glm(Clicked.on.Ad ~ Daily.Time.Spent.on.Site * Daily.Internet.Usage, family = "binomial", data = ads)
+summary(click.base.logit)
+```
+
+--------------------------------------
+
+Plotting the above:
+```{r}
+gg = ggplot(ads, aes(x = Daily.Time.Spent.on.Site, y = Clicked.on.Ad)) +
+    geom_jitter(width = 0, height = 0.1) +
+    geom_smooth(method = "loess")
+gg + geom_smooth(method = "glm", method.args = list(family = "binomial"), color = "orange") + xlab("Daily time spent on site (in mins)") +
+    ylab("Probability of Clicking") + ggtitle("Logistic regression model: Daily Time Spent on Site Vs Probability of Clicking")
+```
+```{r}
+gg = ggplot(ads, aes(x = Daily.Time.Spent.on.Site, y = Clicked.on.Ad)) +
+    geom_jitter(width = 0, height = 0.1) 
+gg + geom_smooth(method = "glm", method.args = list(family = "binomial"), color = "orange") + xlab("Daily time spent on site (in mins)") +
+    ylab("Probability of Clicking") + ggtitle("Logistic regression model: Daily Time Spent on Site Vs Probability of Clicking")
+```
+
+------------------------------------
+
+Additive Model (Daily Time Spent on Site + Daily Internet Usage)
+
+
+```{r}
+click.add.logit = glm(Clicked.on.Ad ~ Daily.Time.Spent.on.Site + Daily.Internet.Usage, family = "binomial", data = ads)
+summary(click.add.logit)
+```
+
+
+```{r}
+gg = ggplot(ads, aes(x = Daily.Time.Spent.on.Site + Daily.Internet.Usage , y = Clicked.on.Ad)) +
+    geom_jitter(width = 0, height = 0.1) +
+    geom_smooth(method = "loess")
+gg + geom_smooth(method = "glm", method.args = list(family = "binomial"), color = "orange") + xlab("Daily time spent on site + Daily Internet Usage") +
+    ylab("Probability of Clicking") + ggtitle("Logistic regression model: Daily Time Spent on Site + Daily Internet Usage Vs Probability of Clicking")
+```
+
+-----------------------------------------------
+
+Taking the interaction between the variables
+
+```{r}
+click.interact.logit = glm(Clicked.on.Ad ~ Daily.Time.Spent.on.Site*Daily.Internet.Usage, family = "binomial", data = ads)
+summary(click.interact.logit)
+```
+
+
+```{r}
+gg = ggplot(ads, aes(x = Daily.Time.Spent.on.Site*Daily.Internet.Usage , y = Clicked.on.Ad)) +
+    geom_jitter(width = 0, height = 0.1) +
+    geom_smooth(method = "loess")
+gg + geom_smooth(method = "glm", method.args = list(family = "binomial"), color = "orange") + xlab("Daily time spent on site*Daily Internet Usage") +
+    ylab("Probability of Clicking") + ggtitle("Logistic regression model: Daily Time Spent on Site * Daily Internet Usage Vs Probability of Clicking")
+```
+```{r}
+gg = ggplot(ads, aes(x = Daily.Time.Spent.on.Site*Daily.Internet.Usage , y = Clicked.on.Ad)) +
+    geom_jitter(width = 0, height = 0.1) 
+gg + geom_smooth(method = "glm", method.args = list(family = "binomial"), color = "orange") + xlab("Daily time spent on site*Daily Internet Usage") +
+    ylab("Probability of Clicking") + ggtitle("Logistic regression model: Daily Time Spent on Site * Daily Internet Usage Vs Probability of Clicking")
+```
+
+-----------------------------
+
+Understanding the interaction:
+
+Binning:
+```{r}
+numbers_of_bins = 4
+ads<-ads%>%mutate(InternetBins = cut(Daily.Internet.Usage, 
+                                 breaks = unique(quantile(Daily.Internet.Usage,probs=seq.int(0,1, by=1/numbers_of_bins))), 
+                                                 include.lowest=TRUE))
+head(ads)
+```
+
+```{r}
+table(ads$InternetBins)
+```
+
+```{r}
+ads$InternetCat = recode_factor(ads$InternetBins, "[105,139]" = "1", "(139,183]" = "2", "(183,219]" = "3", "(219,270]" = "4")
+```
+
+
+Fitting the model:
+
+```{r}
+click.qinteract.logit = glm(Clicked.on.Ad ~ Daily.Time.Spent.on.Site:InternetCat, family = "binomial", data = ads)
+summary(click.qinteract.logit)
+```
+
+```{r}
+ads_preds = augment(click.qinteract.logit, type.predict = "response")
+ads_preds
+```
+```{r}
+ggplot(ads_preds, aes(x = Daily.Time.Spent.on.Site, y = .fitted, group = InternetCat, color = InternetCat)) +
+    geom_line() +
+    xlab("Daily Time Spent on Site (in mins)") +
+    ylab("Probability of Clicking") +
+    labs(color = "Quantiles of Daily Internet Usage") + ggtitle("Model Fit: Daily Time Spent on Site Vs Probability of Clicking per Quantile")
+```
+
+---------------------------------------
+
+Lots of predictors:
+
+```{r}
+click.age.interact.logit = glm(Clicked.on.Ad ~ Daily.Time.Spent.on.Site:InternetCat + Age , family = "binomial", data = ads)
+summary(click.age.interact.logit)
+```
+
+```{r}
+switch_model_df = augment(click.age.interact.logit, type.residuals = "pearson")
+ggplot(switch_model_df, aes(x = .fitted, y = .resid)) +
+    geom_point() +
+    geom_smooth(method = "loess", method.args = list(degree = 1)) +
+    xlab("Fitted values") +
+    ylab("Residuals")
+```
+```{r}
+ggplot(switch_model_df, aes(x = Daily.Time.Spent.on.Site , y = .resid)) +
+    geom_point() +
+    geom_smooth(method = "loess", method.args = list(degree = 1)) +
+    xlab("Daily Time Spent on Site") +
+    ylab("Residuals")
+```
+
+
+```{r}
+ggplot(switch_model_df, aes(x = Age , y = .resid)) +
+    geom_point() +
+    geom_smooth(method = "loess", method.args = list(degree = 1)) +
+    xlab("Age") +
+    ylab("Residuals")
+```
+
+-----------------------------------
+
+

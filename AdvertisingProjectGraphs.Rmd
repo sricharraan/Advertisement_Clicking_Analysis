@@ -1,0 +1,255 @@
+---
+title: "Advertising EDA"
+output:
+  html_document:
+    df_print: paged
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(MASS)
+library(broom)
+library(arm)
+library(ggmosaic)
+library(inspectdf)
+library(corrplot)
+library(vcd)
+```
+
+```{r}
+ads <- read.csv('advertising.csv')
+head(ads)
+```
+```{r}
+inspect_cor(ads, df2 = NULL, method = "pearson", with_col = 'Clicked.on.Ad', alpha = 0.05)
+```
+
+```{r}
+inspect_cor(ads, df2 = NULL, method = "pearson", alpha = 0.05)
+```
+
+```{r}
+ads_num <- Filter(is.numeric, ads)
+corrplot(cor(ads_num), method="color") 
+```
+
+```{r}
+ads$Clicked.on.Ad = recode_factor(ads$Clicked.on.Ad, "1" = "Yes", "0" = "No")
+```
+
+```{r}
+table(ads$Clicked.on.Ad)
+```
+
+```{r}
+ggplot(ads, aes(x = Daily.Internet.Usage)) + geom_histogram(color="black", fill="white") + xlab("Daily Internet Usage")
+```
+
+```{r}
+ggplot(ads, aes(x = Daily.Time.Spent.on.Site), color = Clicked.on.Ad) + geom_histogram(color="black", fill="white") + xlab("Daily Time Spent on Site")
+```
+```{r}
+ggplot(ads, aes(x = Daily.Internet.Usage, fill = Clicked.on.Ad)) +
+    geom_histogram()  + facet_wrap(~Clicked.on.Ad, ncol = 1) + xlab("Daily Internet Usage (in mins)") + ggtitle("Distribution of Daily Internet Usage for each Class")
+```
+    
+Quite clearly, the distributions of daily time spent on site for clicking on ad are very different from the distribution for not clicking on ad.
+
+
+```{r}
+ggplot(ads, aes(x =  Daily.Time.Spent.on.Site,color = Clicked.on.Ad, fill = Clicked.on.Ad)) +
+    geom_histogram() + facet_wrap(~Clicked.on.Ad, ncol = 1) + xlab("Daily Time Spent on Site (in mins)") + ggtitle("Distribution of Daily Time Spent on Site for each Class")
+```
+
+Quite clearly, the distributions of daily time spent on site for clicking on ad are very different from the distribution for not clicking on ad.
+
+```{r}
+ggplot(ads, aes(x = Daily.Time.Spent.on.Site,color = Clicked.on.Ad)) +
+    geom_boxplot() + facet_wrap(~Clicked.on.Ad, ncol = 1)
+```
+```{r}
+ggplot(ads, aes(x = Daily.Internet.Usage,color = Clicked.on.Ad)) +
+    geom_boxplot() + facet_wrap(~Clicked.on.Ad, ncol = 1)
+```
+
+
+```{r}
+ggplot(ads, aes(x = Daily.Time.Spent.on.Site, y = Daily.Internet.Usage, color = factor(Clicked.on.Ad))) +
+    geom_point(alpha = 0.5) +
+    xlab("Daily Time Spent on Site (in mins)") +
+    ylab("Daily Internet Usage (in mins)") +
+    labs(color = "Clicked on Ad")  +
+    scale_color_manual(values = c("red", "blue")) + ggtitle("Scatter plot of Daily Internet Usage vs. Daily Time Spent on Site")
+
+```
+```{r}
+ggplot(ads, aes(x = Daily.Time.Spent.on.Site, y = Daily.Internet.Usage, color = factor(Clicked.on.Ad))) +
+    geom_density2d() +
+    xlab("Daily Time Spent on Site (in mins)") +
+    ylab("Daily Internet Usage (in mins)") +
+    labs(color = "Clicked on Ad")  +
+    scale_color_manual(values = c("red", "blue")) + ggtitle("Density plot of Daily Internet Usage vs. Daily Time Spent on Site")
+```
+
+
+
+```{r}
+ads$Clicked.on.Ad = recode_factor(ads$Clicked.on.Ad, "1" = "Yes", "0" = "No")
+ads$Male = recode_factor(ads$Male, "1" = "Male", "0" = "Female")
+```
+
+```{r}
+table(ads$Clicked.on.Ad)
+table(ads$Male)
+```
+
+
+
+
+```{r}
+ggplot(ads, aes(x = Age, fill = Clicked.on.Ad)) +
+    geom_density(position = "stack")  + facet_wrap(~Clicked.on.Ad, ncol = 1) + xlab("Age") 
+```
+```{r}
+ggplot(ads, aes(x = Daily.Time.Spent.on.Site, fill = Male )) +
+    geom_density(position = "stack")  + facet_wrap(~Clicked.on.Ad, ncol = 1) 
+```
+
+```{r}
+ggplot(ads, aes(x = Daily.Internet.Usage, fill = Male )) +
+    geom_density(position = "stack")  + facet_wrap(~Clicked.on.Ad, ncol = 1) 
+```
+
+
+```{r}
+ggplot(ads, aes(x = Daily.Time.Spent.on.Site, y = Daily.Internet.Usage, color = factor(Age))) +  geom_jitter(width = 0, height = 0.2) +
+    xlab("Daily Time Spent on Site (in mins)") +
+    ylab("Daily Internet Usage (in mins)")
+
+```
+
+
+```{r}
+ggplot(ads, aes(x = Age , y = Daily.Time.Spent.on.Site * Daily.Internet.Usage, color = factor(Clicked.on.Ad))) +
+    geom_point(alpha = 0.5) +
+    xlab("Age") +
+    ylab("Daily Time Spent on Site (in mins) * Daily internet Usage") +
+    labs(color = "Clicked on Ad")  +
+    scale_color_manual(values = c("red", "blue")) + ggtitle("Scatter plot of Age Vs Daily Time Spent on Site/Daily Internet Usage")
+
+```
+
+```{r}
+ggplot(ads, aes(x = Age , y = Daily.Internet.Usage , color = factor(Clicked.on.Ad))) +
+    geom_point(alpha = 0.5) +
+    xlab("Age") +
+    ylab("Daily Internet usage") +
+    labs(color = "Clicked on Ad")  +
+    scale_color_manual(values = c("red", "blue")) + ggtitle("Scatter plot of Daily Internet Usage vs. Daily Time Spent on Site")
+
+
+```
+
+
+
+```{r}
+ggplot(ads, aes(x = Daily.Time.Spent.on.Site, y = Daily.Internet.Usage , color = factor(Clicked.on.Ad))) + geom_point(alpha=0.5) + facet_wrap(~Male) +    
+labs(color = "Clicked on Ad")  +
+scale_color_manual(values = c("red", "blue")) + ggtitle("Relationship between Gender & Daily Time Spent on Sit and Daily Internet Usage")
+```
+
+```{r}
+ggplot(ads, aes(x = Daily.Time.Spent.on.Site, y = Daily.Internet.Usage , color = factor(Clicked.on.Ad))) + geom_density2d() + facet_wrap(~Male) +    
+labs(color = "Clicked on Ad")  +
+scale_color_manual(values = c("red", "blue")) + ggtitle("Density Plot:Gender & Daily Time Spent on Sit and Daily Internet Usage")
+```
+
+```{r, fig.height = 5, fig.width=8}
+ggplot(ads, aes(x = Age, y = Daily.Internet.Usage , color = factor(Clicked.on.Ad))) + geom_point(alpha=0.5) + facet_wrap(~Male) +    
+labs(color = "Clicked on Ad")  +
+scale_color_manual(values = c("red", "blue"))
+```
+
+
+```{r, fig.height = 5, fig.width=8}
+ggplot(ads, aes(x = Age, y = Daily.Internet.Usage , color = factor(Clicked.on.Ad))) + geom_density2d() + facet_wrap(~Male) +    
+labs(color = "Clicked on Ad")  +
+scale_color_manual(values = c("red", "blue"))
+```
+
+
+
+```{r}
+numbers_of_bins = 3
+ads<-ads%>%mutate(AgeBins = cut(Age, 
+                                 breaks = unique(quantile(Age,probs=seq.int(0,1, by=1/numbers_of_bins))), 
+                                                 include.lowest=TRUE))
+head(ads)
+
+```
+
+
+```{r}
+table(ads$AgeBins)
+```
+
+```{r}
+ads$AgeCat = recode_factor(ads$AgeBins, "[19,31]" = "1", "(31,39]" = "2", "(39,61]" = "3")
+#ads$QuantileCat = recode_factor(ads$MyQuantileBins, "[19,29]" = "1", "(29,35]" = "2", "(35,42]" = "3","(42,61]" = "4")
+```
+
+```{r}
+ggplot(ads, aes(y = Daily.Internet.Usage, x = Daily.Time.Spent.on.Site, color = factor(AgeCat))) +
+geom_point()
+```
+
+```{r, fig.height = 10, fig.width = 8}
+age_groups <- c('1' = "Age range: 19 to 31", '2' = "Age range: 31 to 39", '3' = "Age range: 39 to 61")
+ggplot(ads, aes(x = Daily.Time.Spent.on.Site, y = Daily.Internet.Usage , color = factor(Clicked.on.Ad))) + geom_point(alpha=0.5) + facet_wrap(~AgeCat, labeller = as_labeller(age_groups), nrow = 3) +  
+labs(color = "Clicked on Ad")  +
+scale_color_manual(values = c("red", "blue")) + ggtitle("Scatter plot: Age & Daily Time Spent on Site*Daily Internet Usage") + xlab("Daily time Spent on Site") + ylab("Daily Internet Usage") 
+```
+
+
+Since Male is a categorical independent variable and Clicked.on.Ad is a categorical dependent variable, the approximate relationship can be visualized through bar graphs or mosaic plots.
+
+This time, we will explore the relationship between two variables through a mosaic plot.
+
+```{r}
+mosaic(~ Male + Clicked.on.Ad, data = ads, shade = T)
+
+#discarding this plot due to less number of residuals
+```
+
+
+
+Looking at the mosaic picture, there is almost no difference in the size of the rectangle for the percentage of clicks (1) on advertisements according to the female (0) and male (1) groups.
+
+You can use chisq.test() or prop.test() to statistically check whether the percentage of clicks (1) is the same or different for women and men, and this time, we will prove this through a chi-square test.
+
+```{r}
+ggplot(ads) + geom_mosaic(aes(x=product(Clicked.on.Ad), fill=Male)) + labs(fill = "Gender") + scale_fill_brewer(palette = "GnBu") + ggtitle("Mosaic Plot of Gender and Clicked.on.Ad") + xlab("Clicked on Ad") + ylab("Gender of consumers")
+```
+
+```{r}
+chisq.test(ads$Male, ads$Clicked.on.Ad)
+```
+
+
+The chi-square test yielded a value of 0.2546 with a p-value greater than 0.05.
+
+Therefore, it can be judged that the percentage of clicks (1) on advertisements is the same for both men and women, in other words, the Male variable and the Clicked.on.Ad variable are independent of each other.
+
+In other words, it can be determined that gender has no effect on clicking on ads.
+
+
+
+
+
+
+
